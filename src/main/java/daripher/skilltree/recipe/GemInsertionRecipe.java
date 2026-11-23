@@ -6,7 +6,6 @@ import daripher.skilltree.init.PSTItems;
 import daripher.skilltree.init.PSTRecipeSerializers;
 import daripher.skilltree.item.ItemHelper;
 import daripher.skilltree.item.gem.GemItem;
-import java.util.Objects;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -34,23 +33,29 @@ public class GemInsertionRecipe extends SmithingTransformRecipe {
   public @NotNull ItemStack assemble(
       @NotNull SmithingRecipeInput input, @NotNull HolderLookup.Provider registries) {
     if (SkillTreeMod.apotheosisEnabled() || !canCraftIn(input)) return ItemStack.EMPTY;
+    Player player = RecipePlayerHolder.get();
+    if (player == null) return ItemStack.EMPTY;
     ItemStack base = input.base();
     ItemStack ingredient = input.addition();
     ItemStack result = base.copy();
     result.setCount(1);
-    Player player = RecipePlayerHolder.get();
-    Objects.requireNonNull(player);
     GemItem.insertGem(player, result, ingredient);
     return result;
   }
 
   private boolean canCraftIn(@NotNull SmithingRecipeInput input) {
+    if (!input.template().isEmpty()) return false;
     Player player = RecipePlayerHolder.get();
     if (player == null) return false;
     ItemStack base = input.base();
     ItemStack ingredient = input.addition();
     if (ingredient.getItem() != PSTItems.GEM.get()) return false;
     return GemItem.canInsertGem(player, base, ingredient);
+  }
+
+  @Override
+  public boolean isTemplateIngredient(@NotNull ItemStack stack) {
+    return stack.isEmpty();
   }
 
   @Override
