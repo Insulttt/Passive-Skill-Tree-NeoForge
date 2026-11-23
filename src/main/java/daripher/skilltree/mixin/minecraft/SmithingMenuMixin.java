@@ -20,6 +20,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(SmithingMenu.class)
 public abstract class SmithingMenuMixin extends ItemCombinerMenu {
@@ -40,15 +41,34 @@ public abstract class SmithingMenuMixin extends ItemCombinerMenu {
     ((Interactive) inputSlots).setUser(inventory.player);
   }
 
+  @Inject(method = "mayPickup", at = @At("HEAD"))
+  private void setRecipePlayerOnMayPickup(
+      Player player, boolean hasStack, CallbackInfoReturnable<Boolean> cir) {
+    RecipePlayerHolder.set(player);
+  }
+
+  @Inject(method = "mayPickup", at = @At("RETURN"))
+  private void clearRecipePlayerOnMayPickup(
+      Player player, boolean hasStack, CallbackInfoReturnable<Boolean> cir) {
+    RecipePlayerHolder.clear();
+  }
+
   @Inject(method = "onTake", at = @At("HEAD"))
   private void changeRainbowJewelInsertionSeed(
       Player player, ItemStack itemStack, CallbackInfo callbackInfo) {
+    RecipePlayerHolder.set(player);
     ItemStack gemStack = inputSlots.getItem(SmithingMenu.ADDITIONAL_SLOT);
     if (gemStack.getItem() != PSTItems.GEM.get()) return;
     GemBonusProvider bonusProvider = GemItem.getGemType(gemStack).getBonusProvider(itemStack);
     if (bonusProvider instanceof RandomGemBonusProvider) {
       ((PlayerExtension) player).updateGemsRandomSeed();
     }
+  }
+
+  @Inject(method = "onTake", at = @At("RETURN"))
+  private void clearRecipePlayerOnTake(
+      Player player, ItemStack itemStack, CallbackInfo callbackInfo) {
+    RecipePlayerHolder.clear();
   }
 
   @Inject(method = "createResult", at = @At("HEAD"))
